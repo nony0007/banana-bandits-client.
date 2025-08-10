@@ -16,7 +16,7 @@ let socket = null;
 let myId = null;
 let myName = null;
 let bananas = new Map(); // id -> mesh
-let otherPlayers = new Map(); // id -> {mesh, tag, name}
+let otherPlayers = new Map(); // id -> {mesh, nameTag}
 let bananaCount = 0;
 
 // -------------------- THREE setup --------------------
@@ -190,10 +190,9 @@ joinBtn.addEventListener('click', ()=>{
   start(name, url);
 });
 
-// -------------------- UPDATED start() --------------------
+// ----- start() with robust Socket.IO connection -----
 function start(name, serverUrl){
-  myName = name; 
-  hudName.textContent = myName;
+  myName = name; hudName.textContent = myName;
   nameModal.classList.add('hidden');
 
   const DEFAULT_SERVER = 'https://banana-bandits-server.onrender.com';
@@ -214,8 +213,7 @@ function start(name, serverUrl){
 
   socket.on('connect', ()=>{
     connStatus.textContent = 'connected';
-    connStatus.classList.remove('bad'); 
-    connStatus.classList.add('good');
+    connStatus.classList.remove('bad'); connStatus.classList.add('good');
     myId = socket.id;
     socket.emit('join', {name: myName});
   });

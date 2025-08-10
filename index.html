@@ -22,17 +22,17 @@
         <p>Enter a nickname to join. Family-friendly only 😄</p>
         <input id="nameInput" placeholder="Your nickname" maxlength="16" />
         <input id="serverInput" placeholder="Server URL (optional)"
-       value="https://banana-bandits-server.onrender.com" />
+               value="https://banana-bandits-server.onrender.com" />
         <button id="joinBtn">Join Jungle</button>
-        <p class="hint">Tip: On GitHub Pages, put your Render URL here, e.g. <em>https://your-app.onrender.com</em></p>
+        <p class="hint">Tip: On GitHub Pages, paste your Render URL if different.</p>
       </div>
     </div>
   </div>
 
   <canvas id="game"></canvas>
 
-  <!-- Socket.IO client -->
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-ZbKpT9V+1k0b1nIdWkZkzQyEwKQ0XzQvXv+5l3V8+Gk3q4+1o+1ZpS0uN8Jd6H4o" crossorigin="anonymous"></script>
+  <!-- Socket.IO client (no SRI to avoid integrity mismatch) -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
   <!-- Main as ES module (Three.js) -->
   <script type="module" src="./main.js"></script>
