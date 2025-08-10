@@ -194,7 +194,8 @@ function start(name, serverUrl){
   myName = name; hudName.textContent = myName;
   nameModal.classList.add('hidden');
 
-  const ioUrl = serverUrl || undefined; // undefined => same origin
+const DEFAULT_SERVER = 'https://banana-bandits-server.onrender.com';
+const ioUrl = (serverUrl && serverUrl.startsWith('http')) ? serverUrl : DEFAULT_SERVER;
   socket = io(ioUrl, {transports:['websocket'], timeout: 10000});
 
   socket.on('connect', ()=>{
