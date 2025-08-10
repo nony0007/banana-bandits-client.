@@ -373,7 +373,7 @@ function tick(){
 
   if (forward !== 0 || strafe !== 0){
     yaw = Math.atan2(strafe, forward);
-    myPlayer.rotation.y = THREE.MathUtils.lerpAngle(myPlayer.rotation.y, yaw + camera.rotation.y, 0.2);
+    myPlayer.rotation.y = lerpAngle(myPlayer.rotation.y, yaw + camera.rotation.y, 0.2);
   }
 
   const dir = new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0), myPlayer.rotation.y);
