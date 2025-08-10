@@ -197,6 +197,12 @@ if (isTouch) {
 
 let vel = new THREE.Vector3();
 let yaw = 0;
+// Smoothly interpolate angles (wraps correctly around -PI..PI)
+const TAU = Math.PI * 2;
+function lerpAngle(a, b, t){
+  let diff = ((b - a + Math.PI) % TAU) - Math.PI;
+  return a + diff * t;
+}
 
 // -------------------- BANANAS --------------------
 function makeBanana(){
