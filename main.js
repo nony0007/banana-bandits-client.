@@ -124,15 +124,81 @@ function worldToScreen(obj){
   return {x,y};
 }
 
-// controls
-let keys = {};
-window.addEventListener('keydown', e=>keys[e.code]=true);
-window.addEventListener('keyup',   e=>keys[e.code]=false);
+// -------------------- INPUT --------------------
+const keys = Object.create(null);
+
+function setKey(code, isDown){
+  keys[code] = isDown;
+}
+
+window.addEventListener('keydown', (e)=>{
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+  setKey(e.code, true);
+});
+window.addEventListener('keyup', (e)=>{
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+  setKey(e.code, false);
+});
+
+// On-screen touch controls for phones/tablets
+const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+if (isTouch) {
+  const pad = document.createElement('div');
+  pad.style.position = 'fixed';
+  pad.style.bottom = '16px';
+  pad.style.left = '16px';
+  pad.style.display = 'grid';
+  pad.style.gridTemplateColumns = '60px 60px 60px';
+  pad.style.gridTemplateRows = '60px 60px 60px';
+  pad.style.gap = '8px';
+  pad.style.zIndex = '20';
+  pad.style.opacity = '0.9';
+
+  const mkBtn = (label, code)=>{
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.style.width='60px'; b.style.height='60px';
+    b.style.border='1px solid rgba(255,255,255,.2)';
+    b.style.borderRadius='12px';
+    b.style.background='rgba(40,40,60,.6)';
+    b.style.color='#fff';
+    b.style.fontWeight='700';
+    b.style.touchAction='none';
+    const on = (ev)=>{ ev.preventDefault(); setKey(code, true); };
+    const off= (ev)=>{ ev.preventDefault(); setKey(code, false); };
+    b.addEventListener('touchstart', on, {passive:false});
+    b.addEventListener('touchend', off, {passive:false});
+    b.addEventListener('touchcancel', off, {passive:false});
+    return b;
+  };
+
+  // layout arrows
+  pad.appendChild(document.createElement('div'));
+  pad.appendChild(mkBtn('▲','KeyW'));
+  pad.appendChild(document.createElement('div'));
+  pad.appendChild(mkBtn('◀','KeyA'));
+  pad.appendChild(document.createElement('div'));
+  pad.appendChild(mkBtn('▶','KeyD'));
+  pad.appendChild(document.createElement('div'));
+  pad.appendChild(mkBtn('▼','KeyS'));
+  pad.appendChild(document.createElement('div'));
+  document.body.appendChild(pad);
+
+  // jump button right side
+  const jump = mkBtn('⤴','Space');
+  jump.style.position='fixed';
+  jump.style.bottom='24px';
+  jump.style.right='24px';
+  jump.style.width='70px'; jump.style.height='70px';
+  jump.style.fontSize='20px';
+  jump.style.borderRadius='50%';
+  document.body.appendChild(jump);
+}
 
 let vel = new THREE.Vector3();
 let yaw = 0;
 
-// bananas
+// -------------------- BANANAS --------------------
 function makeBanana(){
   const g = new THREE.TorusKnotGeometry(0.25, 0.08, 60, 8);
   const m = new THREE.MeshStandardMaterial({color:0xffe460, metalness:.1, roughness:.5});
@@ -156,7 +222,7 @@ function removeBanana(id){
   bananas.delete(id);
 }
 
-// other players
+// -------------------- OTHER PLAYERS --------------------
 function addOtherPlayer(id, name, x, z, rotY){
   const mesh = makeMonkey(0xffd699);
   mesh.position.set(x||0, 0.9, z||0);
@@ -176,21 +242,21 @@ function removeOtherPlayer(id){
   onlineCountEl.textContent = otherPlayers.size + 1;
 }
 
-// resize
+// -------------------- RESIZE --------------------
 window.addEventListener('resize', ()=>{
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.aspect = window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
 });
 
-// join flow
+// -------------------- JOIN FLOW --------------------
 joinBtn.addEventListener('click', ()=>{
   const name = (nameInput.value || '').trim() || 'Monkey'+Math.floor(Math.random()*1000);
   const url = (serverInput.value || '').trim();
   start(name, url);
 });
 
-// ----- start() with robust Socket.IO connection -----
+// -------------------- NETWORK START --------------------
 function start(name, serverUrl){
   myName = name; hudName.textContent = myName;
   nameModal.classList.add('hidden');
@@ -264,7 +330,7 @@ function start(name, serverUrl){
   });
 }
 
-// interaction
+// -------------------- INTERACTION --------------------
 window.addEventListener('click', ()=>{
   if(!socket || !socket.connected) return;
   const dir = new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0), myPlayer.rotation.y);
@@ -272,43 +338,56 @@ window.addEventListener('click', ()=>{
   socket.emit('throwPeel', {x: pos.x, z: pos.z});
 });
 
+// Hop animation with Space (or touch jump)
+let hopT = 0; // 0..1 during hop
+function triggerHop(){
+  if (hopT > 0 && hopT < 1) return; // already hopping
+  hopT = 0.0001;
+}
 window.addEventListener('keydown', (e)=>{
-  if(e.code==='KeyE'){
-    if(!socket) return;
-    let nearestId = null, nearestDist = 999;
-    bananas.forEach((mesh, id)=>{
-      const d = mesh.position.distanceTo(myPlayer.position);
-      if(d < nearestDist){ nearestDist = d; nearestId = id; }
-    });
-    if(nearestId!==null && nearestDist < 1.6){
-      socket.emit('pickup', {bananaId: nearestId});
-    }
-  }
+  if (e.code === 'Space') { e.preventDefault(); triggerHop(); }
 });
 
-// game loop
+// -------------------- GAME LOOP --------------------
 const clock = new THREE.Clock();
 let accumNet = 0;
+
 function tick(){
   const dt = Math.min(clock.getDelta(), 0.033);
   const speed = 5.2;
 
-  // movement (WASD relative to facing)
-  const forward = (keys['KeyW']?1:0) - (keys['KeyS']?1:0);
-  const strafe  = (keys['KeyD']?1:0) - (keys['KeyA']?1:0);
+  // support WASD and Arrow keys
+  const W = keys['KeyW'] || keys['ArrowUp'];
+  const S = keys['KeyS'] || keys['ArrowDown'];
+  const A = keys['KeyA'] || keys['ArrowLeft'];
+  const D = keys['KeyD'] || keys['ArrowRight'];
+
+  const forward = (W?1:0) - (S?1:0);
+  const strafe  = (D?1:0) - (A?1:0);
+
   if (forward !== 0 || strafe !== 0){
     yaw = Math.atan2(strafe, forward);
     myPlayer.rotation.y = THREE.MathUtils.lerpAngle(myPlayer.rotation.y, yaw + camera.rotation.y, 0.2);
   }
+
   const dir = new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0), myPlayer.rotation.y);
   const right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0,1,0)).negate();
 
   vel.set(0,0,0);
-  vel.addScaledVector(dir, (keys['KeyW']?1:0) - (keys['KeyS']?1:0));
-  vel.addScaledVector(right, (keys['KeyD']?1:0) - (keys['KeyA']?1:0));
+  vel.addScaledVector(dir, forward);
+  vel.addScaledVector(right, strafe);
   if(vel.lengthSq()>0) vel.setLength(speed*dt);
 
   myPlayer.position.add(vel);
+
+  // hop motion
+  if (hopT > 0 && hopT <= 1){
+    myPlayer.position.y = 0.9 + Math.sin(hopT * Math.PI) * 0.6;
+    hopT += dt * 2; // hop lasts ~0.5s
+    if (hopT > 1){ hopT = 0; myPlayer.position.y = 0.9; }
+  }
+
+  // clamp inside arena
   const r = 195;
   myPlayer.position.x = THREE.MathUtils.clamp(myPlayer.position.x, -r, r);
   myPlayer.position.z = THREE.MathUtils.clamp(myPlayer.position.z, -r, r);
