@@ -1,19 +1,78 @@
-*{box-sizing:border-box}html,body{margin:0;height:100%;background:#0a0f0d;color:#e9f6ff;font-family:system-ui,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;overflow:hidden}
-#game{position:fixed;inset:0;display:block}
-#hud{position:fixed;top:12px;left:12px;display:flex;gap:10px;align-items:center;background:rgba(10,15,13,.6);backdrop-filter:blur(4px);padding:10px 12px;border:1px solid rgba(255,255,255,.1);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+*{box-sizing:border-box}
+html,body{
+  margin:0;height:100%;
+  background:#0a0f0d;color:#e9f6ff;
+  font-family:system-ui,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;
+  overflow:hidden;
+}
+
+/* Canvas behind all UI */
+#game{
+  position:fixed;inset:0;display:block;
+  z-index:0;
+}
+
+/* UI layer wrapper */
+#ui{
+  position:fixed;inset:0;
+  z-index:10;
+}
+
+/* Top HUD */
+#hud{
+  position:fixed;top:12px;left:12px;
+  display:flex;gap:10px;align-items:center;
+  background:rgba(10,15,13,.6);
+  backdrop-filter:blur(4px);
+  padding:10px 12px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;
+  box-shadow:0 8px 30px rgba(0,0,0,.35);
+  z-index:11;            /* above canvas */
+  pointer-events:auto;   /* clickable */
+}
+
 .brand{font-weight:800;letter-spacing:.3px}
 .stat{opacity:.95}
 .stat.small{opacity:.7;font-size:12px}
-.pill{margin-left:8px;font-size:12px;padding:4px 8px;border-radius:999px;background:#223;opacity:.9;border:1px solid rgba(255,255,255,.08)}
-.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(100% 100% at 50% 50%, rgba(10,15,13,.92), rgba(10,15,13,.96))}
-.card{width:min(520px,90vw);background:#0d1512;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px;box-shadow:0 10px 40px rgba(0,0,0,.55)}
+.pill{
+  margin-left:8px;font-size:12px;padding:4px 8px;
+  border-radius:999px;background:#223;opacity:.9;
+  border:1px solid rgba(255,255,255,.08)
+}
+
+/* Join modal on top of everything */
+.modal{
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(100% 100% at 50% 50%, rgba(10,15,13,.92), rgba(10,15,13,.96));
+  z-index:12;            /* top-most */
+  pointer-events:auto;   /* receive clicks */
+}
+
+.card{
+  width:min(520px,90vw);
+  background:#0d1512;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:18px;padding:22px;
+  box-shadow:0 10px 40px rgba(0,0,0,.55)
+}
 .card h1{margin:0 0 8px 0}
 .card p{margin:.2rem 0 1rem 0;opacity:.9}
-.card input{width:100%;padding:12px 14px;margin:.3rem 0 .6rem 0;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0a0f0d;color:#e9f6ff;outline:none}
+.card input{
+  width:100%;padding:12px 14px;margin:.3rem 0 .6rem 0;
+  border-radius:12px;border:1px solid rgba(255,255,255,.12);
+  background:#0a0f0d;color:#e9f6ff;outline:none
+}
 .card input:focus{border-color:#39f3}
-.card button{width:100%;padding:12px 14px;border-radius:12px;border:0;background:#2d7ef7;color:#fff;font-weight:700;cursor:pointer}
+.card button{
+  width:100%;padding:12px 14px;border-radius:12px;border:0;
+  background:#2d7ef7;color:#fff;font-weight:700;cursor:pointer
+}
 .card button:hover{filter:brightness(1.1)}
 .hint{opacity:.7;font-size:12px}
+
+/* Utility */
 .hidden{display:none}
 .bad{background:#632626}
 .good{background:#1f513d}
