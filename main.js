@@ -16,7 +16,7 @@ let socket = null;
 let myId = null;
 let myName = null;
 let bananas = new Map(); // id -> mesh
-let otherPlayers = new Map(); // id -> {mesh, nameTag}
+let otherPlayers = new Map(); // id -> {mesh, tag, name}
 let bananaCount = 0;
 
 // -------------------- THREE setup --------------------
@@ -190,30 +190,43 @@ joinBtn.addEventListener('click', ()=>{
   start(name, url);
 });
 
+// -------------------- UPDATED start() --------------------
 function start(name, serverUrl){
-  myName = name; hudName.textContent = myName;
+  myName = name; 
+  hudName.textContent = myName;
   nameModal.classList.add('hidden');
 
-const DEFAULT_SERVER = 'https://banana-bandits-server.onrender.com';
-const ioUrl = (serverUrl && serverUrl.startsWith('http')) ? serverUrl : DEFAULT_SERVER;
-  socket = io(ioUrl, {transports:['websocket'], timeout: 10000});
+  const DEFAULT_SERVER = 'https://banana-bandits-server.onrender.com';
+  const ioUrl = (serverUrl && serverUrl.startsWith('http')) ? serverUrl : DEFAULT_SERVER;
+
+  socket = io(ioUrl, {
+    path: '/socket.io',
+    transports: ['websocket','polling'],
+    timeout: 15000,
+    reconnectionAttempts: 5
+  });
+
+  const showErr = (label, err)=>{ 
+    connStatus.textContent = label + (err?.message ? `: ${err.message}` : '');
+    connStatus.classList.remove('good'); 
+    connStatus.classList.add('bad'); 
+  };
 
   socket.on('connect', ()=>{
     connStatus.textContent = 'connected';
-    connStatus.classList.remove('bad'); connStatus.classList.add('good');
+    connStatus.classList.remove('bad'); 
+    connStatus.classList.add('good');
     myId = socket.id;
     socket.emit('join', {name: myName});
   });
 
-  socket.on('disconnect', ()=>{
-    connStatus.textContent = 'disconnected';
-    connStatus.classList.remove('good'); connStatus.classList.add('bad');
-  });
+  socket.on('connect_error', (err)=> showErr('connect_error', err));
+  socket.on('error',         (err)=> showErr('error', err));
+  socket.on('reconnect_error',(err)=> showErr('reconnect_error', err));
+  socket.on('disconnect', (reason)=> showErr('disconnected', {message: reason}));
 
   socket.on('init', (data)=>{
-    // spawn bananas
     data.bananas.forEach(b=> spawnBanana(b.id, b.x, b.z));
-    // other players
     Object.values(data.players).forEach(p=>{
       if(p.id !== socket.id){
         addOtherPlayer(p.id, p.name, p.x, p.z, p.rotY);
@@ -245,7 +258,6 @@ const ioUrl = (serverUrl && serverUrl.startsWith('http')) ? serverUrl : DEFAULT_
   });
 
   socket.on('peelThrown', (data)=>{
-    // cosmetic: small torus where peel lands
     const t = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.06, 8, 24), new THREE.MeshStandardMaterial({color:0xffd27f}));
     t.position.set(data.x, 0.1, data.z);
     t.rotation.x = Math.PI/2;
@@ -257,7 +269,6 @@ const ioUrl = (serverUrl && serverUrl.startsWith('http')) ? serverUrl : DEFAULT_
 // interaction
 window.addEventListener('click', ()=>{
   if(!socket || !socket.connected) return;
-  // throw peel forward
   const dir = new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0), myPlayer.rotation.y);
   const pos = myPlayer.position.clone().add(dir.clone().multiplyScalar(1.2));
   socket.emit('throwPeel', {x: pos.x, z: pos.z});
@@ -265,7 +276,6 @@ window.addEventListener('click', ()=>{
 
 window.addEventListener('keydown', (e)=>{
   if(e.code==='KeyE'){
-    // try pick banana nearby
     if(!socket) return;
     let nearestId = null, nearestDist = 999;
     bananas.forEach((mesh, id)=>{
@@ -301,7 +311,6 @@ function tick(){
   if(vel.lengthSq()>0) vel.setLength(speed*dt);
 
   myPlayer.position.add(vel);
-  // clamp inside arena
   const r = 195;
   myPlayer.position.x = THREE.MathUtils.clamp(myPlayer.position.x, -r, r);
   myPlayer.position.z = THREE.MathUtils.clamp(myPlayer.position.z, -r, r);
